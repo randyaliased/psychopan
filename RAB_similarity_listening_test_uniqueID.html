@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>R-A-B Similarity Listening Test</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --primary-dark: #1e40af;
+      --secondary: #374151;
+      --secondary-dark: #111827;
+      --border: #d1d5db;
+      --success: #047857;
+      --warning-bg: #fef3c7;
+      --warning-border: #f59e0b;
+      --warning-text: #78350f;
+      --danger: #b91c1c;
+      --active-bg: #dbeafe;
+      --active-border: #2563eb;
+      --active-text: #1e3a8a;
+      --done-bg: #ecfdf5;
+      --done-border: #10b981;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    main {
+      max-width: 980px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    h1, h2, h3 { margin-top: 0; }
+    .muted { color: var(--muted); }
+    .hidden { display: none !important; }
+    .small { font-size: 0.9rem; }
+    .center { text-align: center; }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin: 18px 0 6px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      max-width: 420px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 12px 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--primary);
+      color: white;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+
+    button:hover:not(:disabled) { background: var(--primary-dark); }
+    button:active:not(:disabled) { transform: translateY(1px); }
+    button:disabled { cursor: not-allowed; opacity: 0.55; }
+
+    .secondary { background: var(--secondary); }
+    .secondary:hover:not(:disabled) { background: var(--secondary-dark); }
+    .response-btn { min-width: 160px; margin: 8px 10px 8px 0; }
+
+    .warning {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      color: var(--warning-text);
+      margin: 18px 0;
+    }
+
+    .error { color: var(--danger); font-weight: 700; }
+
+    code {
+      background: #f3f4f6;
+      padding: 2px 5px;
+      border-radius: 5px;
+    }
+
+    .progress-wrap { margin: 18px 0 4px; }
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--success);
+      transition: width 0.25s ease;
+    }
+
+    .sequence-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(90px, 1fr));
+      gap: 12px;
+      margin: 26px 0 20px;
+    }
+
+    .sound-box {
+      min-height: 96px;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fafafa;
+      transition: background 0.15s ease, border 0.15s ease, transform 0.15s ease;
+    }
+
+    .sound-box .label {
+      font-size: 2rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .sound-box.active {
+      background: var(--active-bg);
+      border-color: var(--active-border);
+      color: var(--active-text);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.18);
+    }
+
+    .sound-box.done {
+      background: var(--done-bg);
+      border-color: var(--done-border);
+    }
+
+    .status-panel {
+      min-height: 34px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #f9fafb;
+      color: var(--muted);
+      margin: 16px 0;
+    }
+
+    .question-panel {
+      border-top: 1px solid var(--border);
+      margin-top: 22px;
+      padding-top: 22px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 16px;
+    }
+
+    .csv-fallback {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+
+    .download-link {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--primary);
+      font-weight: 700;
+      text-decoration: underline;
+    }
+
+    textarea.csv-preview {
+      width: 100%;
+      min-height: 190px;
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: Consolas, Monaco, "Courier New", monospace;
+      font-size: 0.85rem;
+      resize: vertical;
+      white-space: pre;
+    }
+
+    @media (max-width: 760px) {
+      .sequence-grid { grid-template-columns: repeat(3, minmax(80px, 1fr)); }
+    }
+
+    @media (max-width: 430px) {
+      main { margin: 20px auto; padding: 0 12px; }
+      .card { padding: 20px; }
+      .sequence-grid { grid-template-columns: repeat(2, minmax(80px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section id="start-screen" class="card">
+      <h1>R-A-B Similarity Listening Test</h1>
+      <p>
+        In each trial, you will hear a reference sound followed by two comparison sounds. The sequence
+        <strong>R, A, B</strong> will play twice automatically. After the second sequence, choose whether
+        <strong>A</strong> or <strong>B</strong> is more similar to the reference.
+      </p>
+
+      <div class="warning">
+        Please use headphones and complete the test in a quiet environment. The sequence plays only once per trial and cannot be replayed.
+      </div>
+
+      <div class="warning">
+        <strong>Your automatically generated participant ID is:</strong><br />
+        <code id="participant-id">Generating...</code>
+      </div>
+
+      <p class="muted small">
+        This ID is generated locally in your browser and will be saved in the downloaded CSV file.
+        This version is configured for <strong>8 comparison samples</strong>. By default it creates
+        <strong>56 ordered/counterbalanced trials</strong>: every sample pair appears twice, once in each A/B order.
+        It currently uses built-in placeholder tones. To use WAV files, set <code>USE_PLACEHOLDER_TONES</code> to
+        <code>false</code> and edit <code>REFERENCE_FILE</code> and <code>COMPARISON_FILES</code> in the configuration section.
+      </p>
+
+      <button id="start-btn">Start Test</button>
+    </section>
+
+    <section id="trial-screen" class="card hidden">
+      <h2>Listening Trial</h2>
+
+      <div class="progress-wrap">
+        <div id="progress-text" class="muted">Trial 1 of 1</div>
+        <div class="progress-bar" aria-hidden="true">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+      </div>
+
+      <p>
+        Please listen carefully. The sequence will play automatically:
+        <strong>R, A, B, then R, A, B again</strong>.
+      </p>
+
+      <div class="sequence-grid" aria-label="Playback sequence indicators">
+        <div id="box-0" class="sound-box"><div class="label">R</div></div>
+        <div id="box-1" class="sound-box"><div class="label">A</div></div>
+        <div id="box-2" class="sound-box"><div class="label">B</div></div>
+        <div id="box-3" class="sound-box"><div class="label">R</div></div>
+        <div id="box-4" class="sound-box"><div class="label">A</div></div>
+        <div id="box-5" class="sound-box"><div class="label">B</div></div>
+      </div>
+
+      <div id="status-panel" class="status-panel">Preparing trial...</div>
+
+      <div id="question-panel" class="question-panel hidden">
+        <h3 id="question-heading">Which is similar to the reference?</h3>
+        <button id="choose-a" class="response-btn" disabled>A</button>
+        <button id="choose-b" class="response-btn" disabled>B</button>
+      </div>
+    </section>
+
+    <section id="end-screen" class="card hidden">
+      <h2>Test Complete</h2>
+      <p>Thank you. Your responses have been recorded in this browser session.</p>
+      <p id="summary-text" class="muted"></p>
+      <div class="button-row">
+        <button id="download-btn">Download CSV</button>
+        <button id="copy-csv-btn" class="secondary">Copy CSV</button>
+        <button id="restart-btn" class="secondary">Restart</button>
+      </div>
+
+      <div class="csv-fallback">
+        <h3>Manual CSV download / fallback</h3>
+        <p class="muted small">
+          If the Download CSV button is blocked by your browser, use the link below, or copy the CSV text manually.
+        </p>
+        <a id="manual-download-link" class="download-link" href="#" download="rab_similarity_results.csv">Manual CSV download</a>
+        <textarea id="csv-preview" class="csv-preview" readonly></textarea>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ========================================================================
+    // CONFIGURATION — EDIT THIS SECTION FOR YOUR REAL WAV FILES
+    // ========================================================================
+
+    // Set this to false when you are ready to use real WAV files from the audio folder.
+    const USE_PLACEHOLDER_TONES = true;
+
+    // Files should be stored in an /audio folder next to this HTML file.
+    // Example path: audio/reference.wav
+    const AUDIO_BASE_PATH = "audio/";
+
+    // Reference sound used on every trial.
+    const REFERENCE_FILE = "reference.wav";
+
+    // Your 8 comparison samples. Replace these with your actual WAV filenames.
+    const COMPARISON_FILES = [
+      "sample_01.wav",
+      "sample_02.wav",
+      "sample_03.wav",
+      "sample_04.wav",
+      "sample_05.wav",
+      "sample_06.wav",
+      "sample_07.wav",
+      "sample_08.wav"
+    ];
+
+    // true = 56 trials for 8 samples: every pair appears twice, once in each A/B order.
+    // false = 28 trials for 8 samples: every unordered pair appears once, with A/B randomly assigned.
+    const USE_ORDERED_COUNTERBALANCED_TRIALS = true;
+
+    const QUESTION_TEXT = "Which is similar to the reference?";
+
+    // Timing settings.
+    const INITIAL_DELAY_MS = 2000;
+    const BETWEEN_SOUNDS_MS = 700;
+    const BETWEEN_SEQUENCES_MS = 2000;
+    const PLACEHOLDER_TONE_DURATION_MS = 900;
+
+    // ========================================================================
+    // STATE
+    // ========================================================================
+
+    let participantId = "";
+    let trials = [];
+    let currentTrialIndex = 0;
+    let results = [];
+    let trialStartTime = null;
+    let audioContext = null;
+    let csvBlobUrl = null;
+
+    const startScreen = document.getElementById("start-screen");
+    const trialScreen = document.getElementById("trial-screen");
+    const endScreen = document.getElementById("end-screen");
+
+    const participantDisplay = document.getElementById("participant-id");
+    const startBtn = document.getElementById("start-btn");
+
+    const progressText = document.getElementById("progress-text");
+    const progressFill = document.getElementById("progress-fill");
+    const statusPanel = document.getElementById("status-panel");
+    const questionPanel = document.getElementById("question-panel");
+    const questionHeading = document.getElementById("question-heading");
+    const chooseAButton = document.getElementById("choose-a");
+    const chooseBButton = document.getElementById("choose-b");
+
+    const summaryText = document.getElementById("summary-text");
+    const downloadBtn = document.getElementById("download-btn");
+    const copyCsvBtn = document.getElementById("copy-csv-btn");
+    const restartBtn = document.getElementById("restart-btn");
+    const manualDownloadLink = document.getElementById("manual-download-link");
+    const csvPreview = document.getElementById("csv-preview");
+
+    // ========================================================================
+    // UTILITY FUNCTIONS
+    // ========================================================================
+
+    function shuffle(array) {
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function timestamp() {
+      return new Date().toISOString();
+    }
+
+    function generateParticipantId() {
+      const now = new Date();
+      const datePart = now.toISOString().slice(0, 10).replaceAll("-", "");
+      const timePart = now.toTimeString().slice(0, 8).replaceAll(":", "");
+      let randomPart = "";
+
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        randomPart = window.crypto.randomUUID().slice(0, 4).toUpperCase();
+      } else if (window.crypto && window.crypto.getRandomValues) {
+        const values = new Uint8Array(2);
+        window.crypto.getRandomValues(values);
+        randomPart = Array.from(values)
+          .map(value => value.toString(16).padStart(2, "0"))
+          .join("")
+          .toUpperCase();
+      } else {
+        randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+      }
+
+      return `P-${datePart}-${timePart}-${randomPart}`;
+    }
+
+    function getOrCreateParticipantId() {
+      try {
+        let storedParticipantId = sessionStorage.getItem("rabParticipantId");
+        if (!storedParticipantId) {
+          storedParticipantId = generateParticipantId();
+          sessionStorage.setItem("rabParticipantId", storedParticipantId);
+        }
+        return storedParticipantId;
+      } catch (error) {
+        // If sessionStorage is blocked, still generate a valid ID for this page load.
+        if (!participantId) {
+          participantId = generateParticipantId();
+        }
+        return participantId;
+      }
+    }
+
+    function updateParticipantDisplay() {
+      participantId = getOrCreateParticipantId();
+      participantDisplay.textContent = participantId;
+    }
+
+    function safeFileLabel(filename) {
+      return String(filename).replace(/^.*[\\/]/, "");
+    }
+
+    function csvEscape(value) {
+      const text = value === null || value === undefined ? "" : String(value);
+      if (/[",\n\r]/.test(text)) {
+        return '"' + text.replace(/"/g, '""') + '"';
+      }
+      return text;
+    }
+
+    function showScreen(screen) {
+      startScreen.classList.add("hidden");
+      trialScreen.classList.add("hidden");
+      endScreen.classList.add("hidden");
+      screen.classList.remove("hidden");
+    }
+
+    function setAllButtonsDisabled(disabled) {
+      chooseAButton.disabled = disabled;
+      chooseBButton.disabled = disabled;
+    }
+
+    function resetBoxes() {
+      for (let i = 0; i < 6; i++) {
+        const box = document.getElementById(`box-${i}`);
+        box.classList.remove("active", "done");
+      }
+    }
+
+    function setActiveBox(index) {
+      for (let i = 0; i < 6; i++) {
+        const box = document.getElementById(`box-${i}`);
+        box.classList.toggle("active", i === index);
+      }
+    }
+
+    function markBoxDone(index) {
+      const box = document.getElementById(`box-${index}`);
+      box.classList.remove("active");
+      box.classList.add("done");
+    }
+
+    // ========================================================================
+    // TRIAL GENERATION
+    // ========================================================================
+
+    function generateTrials() {
+      const generated = [];
+      let trialNumber = 1;
+
+      for (let i = 0; i < COMPARISON_FILES.length; i++) {
+        for (let j = i + 1; j < COMPARISON_FILES.length; j++) {
+          const sample1 = COMPARISON_FILES[i];
+          const sample2 = COMPARISON_FILES[j];
+          const pairId = `${safeFileLabel(sample1)}__vs__${safeFileLabel(sample2)}`;
+
+          if (USE_ORDERED_COUNTERBALANCED_TRIALS) {
+            generated.push({
+              trialId: `T${trialNumber++}`,
+              pairId,
+              referenceFile: REFERENCE_FILE,
+              sample1,
+              sample2,
+              aFile: sample1,
+              bFile: sample2,
+              orderType: "sample1_A_sample2_B"
+            });
+            generated.push({
+              trialId: `T${trialNumber++}`,
+              pairId,
+              referenceFile: REFERENCE_FILE,
+              sample1,
+              sample2,
+              aFile: sample2,
+              bFile: sample1,
+              orderType: "sample2_A_sample1_B"
+            });
+          } else {
+            const flip = Math.random() < 0.5;
+            generated.push({
+              trialId: `T${trialNumber++}`,
+              pairId,
+              referenceFile: REFERENCE_FILE,
+              sample1,
+              sample2,
+              aFile: flip ? sample2 : sample1,
+              bFile: flip ? sample1 : sample2,
+              orderType: flip ? "sample2_A_sample1_B" : "sample1_A_sample2_B"
+            });
+          }
+        }
+      }
+
+      return shuffle(generated).map((trial, index) => ({
+        ...trial,
+        randomizedTrialIndex: index + 1
+      }));
+    }
+
+    // ========================================================================
+    // AUDIO FUNCTIONS
+    // ========================================================================
+
+    async function ensureAudioContext() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+    }
+
+    function getPlaceholderFrequency(label, filename) {
+      const baseFrequencies = {
+        R: 440,
+        A: 554.37,
+        B: 659.25
+      };
+
+      // Add a tiny deterministic offset based on filename so the 8 sample placeholders differ.
+      let hash = 0;
+      for (const char of String(filename)) {
+        hash = ((hash << 5) - hash) + char.charCodeAt(0);
+        hash |= 0;
+      }
+      const offset = Math.abs(hash % 70);
+      return (baseFrequencies[label] || 440) + offset;
+    }
+
+    async function playPlaceholderTone(label, filename) {
+      await ensureAudioContext();
+
+      const durationSec = PLACEHOLDER_TONE_DURATION_MS / 1000;
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.value = getPlaceholderFrequency(label, filename);
+
+      const now = audioContext.currentTime;
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.18, now + 0.03);
+      gainNode.gain.setValueAtTime(0.18, now + durationSec - 0.04);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + durationSec);
+
+      oscillator.connect(gainNode).connect(audioContext.destination);
+      oscillator.start(now);
+      oscillator.stop(now + durationSec);
+
+      await sleep(PLACEHOLDER_TONE_DURATION_MS);
+    }
+
+    function playAudioFile(filename) {
+      return new Promise((resolve, reject) => {
+        const audio = new Audio(AUDIO_BASE_PATH + filename);
+        audio.preload = "auto";
+
+        audio.addEventListener("ended", () => resolve(), { once: true });
+        audio.addEventListener("error", () => {
+          reject(new Error(`Could not load or play audio file: ${AUDIO_BASE_PATH + filename}`));
+        }, { once: true });
+
+        audio.play().catch(error => reject(error));
+      });
+    }
+
+    async function playSound(label, filename) {
+      if (USE_PLACEHOLDER_TONES) {
+        await playPlaceholderTone(label, filename);
+      } else {
+        await playAudioFile(filename);
+      }
+    }
+
+    // ========================================================================
+    // EXPERIMENT FLOW
+    // ========================================================================
+
+    async function startExperiment() {
+      participantId = getOrCreateParticipantId();
+      participantDisplay.textContent = participantId;
+
+      trials = generateTrials();
+      currentTrialIndex = 0;
+      results = [];
+
+      if (USE_PLACEHOLDER_TONES) {
+        await ensureAudioContext();
+      }
+
+      showScreen(trialScreen);
+      await runCurrentTrial();
+    }
+
+    async function runCurrentTrial() {
+      const trial = trials[currentTrialIndex];
+      trialStartTime = performance.now();
+
+      resetBoxes();
+      questionPanel.classList.add("hidden");
+      setAllButtonsDisabled(true);
+
+      const progressPercent = (currentTrialIndex / trials.length) * 100;
+      progressText.textContent = `Trial ${currentTrialIndex + 1} of ${trials.length}`;
+      progressFill.style.width = `${progressPercent}%`;
+      questionHeading.textContent = QUESTION_TEXT;
+
+      statusPanel.textContent = "Get ready. The sequence will begin shortly.";
+      await sleep(INITIAL_DELAY_MS);
+
+      const sequence = [
+        { label: "R", filename: trial.referenceFile, boxIndex: 0 },
+        { label: "A", filename: trial.aFile, boxIndex: 1 },
+        { label: "B", filename: trial.bFile, boxIndex: 2 },
+        { label: "R", filename: trial.referenceFile, boxIndex: 3 },
+        { label: "A", filename: trial.aFile, boxIndex: 4 },
+        { label: "B", filename: trial.bFile, boxIndex: 5 }
+      ];
+
+      for (let i = 0; i < sequence.length; i++) {
+        const item = sequence[i];
+
+        if (i === 3) {
+          statusPanel.textContent = "Please keep listening. The sequence will repeat.";
+          await sleep(BETWEEN_SEQUENCES_MS);
+        } else if (i > 0) {
+          await sleep(BETWEEN_SOUNDS_MS);
+        }
+
+        setActiveBox(item.boxIndex);
+        statusPanel.textContent = `Playing ${item.label}...`;
+
+        try {
+          await playSound(item.label, item.filename);
+        } catch (error) {
+          console.error(error);
+          statusPanel.innerHTML = `<span class="error">Audio error:</span> ${error.message}`;
+          setAllButtonsDisabled(true);
+          return;
+        }
+
+        markBoxDone(item.boxIndex);
+      }
+
+      setActiveBox(-1);
+      statusPanel.textContent = "Please answer the question below.";
+      questionPanel.classList.remove("hidden");
+      setAllButtonsDisabled(false);
+    }
+
+    function recordResponse(choice) {
+      const trial = trials[currentTrialIndex];
+      const reactionTimeMs = Math.round(performance.now() - trialStartTime);
+      const chosenFile = choice === "A" ? trial.aFile : trial.bFile;
+      const nonChosenFile = choice === "A" ? trial.bFile : trial.aFile;
+
+      results.push({
+        participant_id: participantId,
+        timestamp: timestamp(),
+        randomized_trial_index: currentTrialIndex + 1,
+        total_trials: trials.length,
+        trial_id: trial.trialId,
+        pair_id: trial.pairId,
+        reference_file: trial.referenceFile,
+        sample1_file: trial.sample1,
+        sample2_file: trial.sample2,
+        a_file: trial.aFile,
+        b_file: trial.bFile,
+        order_type: trial.orderType,
+        response: choice,
+        chosen_file: chosenFile,
+        non_chosen_file: nonChosenFile,
+        question: QUESTION_TEXT,
+        reaction_time_ms: reactionTimeMs,
+        placeholder_tones_used: USE_PLACEHOLDER_TONES,
+        user_agent: navigator.userAgent
+      });
+
+      currentTrialIndex++;
+      if (currentTrialIndex < trials.length) {
+        runCurrentTrial();
+      } else {
+        finishExperiment();
+      }
+    }
+
+    function finishExperiment() {
+      progressFill.style.width = "100%";
+      showScreen(endScreen);
+      summaryText.textContent = `Completed ${results.length} trials. Click Download CSV to save your results.`;
+      prepareCsvFallback();
+    }
+
+    // ========================================================================
+    // CSV EXPORT
+    // ========================================================================
+
+    function makeCsv() {
+      const headers = [
+        "participant_id",
+        "timestamp",
+        "randomized_trial_index",
+        "total_trials",
+        "trial_id",
+        "pair_id",
+        "reference_file",
+        "sample1_file",
+        "sample2_file",
+        "a_file",
+        "b_file",
+        "order_type",
+        "response",
+        "chosen_file",
+        "non_chosen_file",
+        "question",
+        "reaction_time_ms",
+        "placeholder_tones_used",
+        "user_agent"
+      ];
+
+      const rows = [headers.join(",")];
+      for (const result of results) {
+        rows.push(headers.map(header => csvEscape(result[header])).join(","));
+      }
+      return rows.join("\n");
+    }
+
+    function getCsvFilename() {
+      const safeParticipant = participantId.replace(/[^a-zA-Z0-9_-]/g, "_") || "participant";
+      const date = new Date().toISOString().replace(/[:.]/g, "-");
+      return `rab_similarity_results_${safeParticipant}_${date}.csv`;
+    }
+
+    function prepareCsvFallback() {
+      const csv = makeCsv();
+      const filename = getCsvFilename();
+      csvPreview.value = csv;
+
+      if (csvBlobUrl) {
+        URL.revokeObjectURL(csvBlobUrl);
+      }
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      csvBlobUrl = URL.createObjectURL(blob);
+      manualDownloadLink.href = csvBlobUrl;
+      manualDownloadLink.download = filename;
+    }
+
+    function downloadCsv() {
+      prepareCsvFallback();
+      const link = document.createElement("a");
+      link.href = csvBlobUrl;
+      link.download = getCsvFilename();
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    async function copyCsvToClipboard() {
+      const csv = makeCsv();
+      try {
+        await navigator.clipboard.writeText(csv);
+        copyCsvBtn.textContent = "Copied CSV";
+        setTimeout(() => { copyCsvBtn.textContent = "Copy CSV"; }, 1600);
+      } catch (error) {
+        csvPreview.focus();
+        csvPreview.select();
+        document.execCommand("copy");
+      }
+    }
+
+    function restartExperiment() {
+      try {
+        sessionStorage.removeItem("rabParticipantId");
+      } catch (error) {
+        // Ignore storage errors and generate a new in-memory ID.
+      }
+      participantId = "";
+      updateParticipantDisplay();
+      trials = [];
+      currentTrialIndex = 0;
+      results = [];
+      resetBoxes();
+      showScreen(startScreen);
+    }
+
+    // ========================================================================
+    // EVENT LISTENERS
+    // ========================================================================
+
+    updateParticipantDisplay();
+
+    startBtn.addEventListener("click", startExperiment);
+
+    chooseAButton.addEventListener("click", () => recordResponse("A"));
+    chooseBButton.addEventListener("click", () => recordResponse("B"));
+    downloadBtn.addEventListener("click", downloadCsv);
+    copyCsvBtn.addEventListener("click", copyCsvToClipboard);
+    restartBtn.addEventListener("click", restartExperiment);
+  </script>
+</body>
+</html>
