@@ -241,19 +241,9 @@
       </div>
 
       <label for="participant-id-input">Participant ID</label>
-      <input id="participant-id-input" type="text" inputmode="numeric" placeholder="e.g., 1, 001, or P001" autocomplete="off" />
-      <!-- <p class="muted small">
-        The participant ID selects the corresponding row from <code>The_Matrix.xlsx</code>. For example,
-        <code>1</code>, <code>001</code>, and <code>P001</code> all select Subject 1.
-      </p> -->
+      <input id="participant-id-input" type="text" inputmode="numeric" placeholder="Enter your participant ID" autocomplete="off" />
 
-      <p id="spreadsheet-status" class="status-panel hidden">Loading spreadsheets...</p>
-
-      <!-- <p class="muted small">
-        Required files should be hosted in the same folder as this HTML file:
-        <code>The_Matrix.xlsx</code>, <code>Question_Key.xlsx</code>, and an <code>audio/</code> folder containing the WAV files.
-        The app loads filenames such as <code>C4_REF.wav</code>, <code>C4_SYNTH_Sound1.wav</code>, and <code>C#4_SYNTH_Sound8.wav</code>.
-      </p> -->
+      <p id="spreadsheet-status" class="status-panel">Loading spreadsheets...</p>
 
       <button id="start-btn" disabled>Start Test</button>
       <p id="start-error" class="error hidden"></p>
@@ -283,23 +273,18 @@
         <div id="box-5" class="sound-box"><div class="label">B</div></div>
       </div>
 
-      <div id="status-panel" class="status-panel">Preparing trial...</div>
+      <p id="status-panel" class="status-panel">Preparing trial...</p>
 
       <div id="question-panel" class="question-panel hidden">
         <h3>Which is similar to the reference?</h3>
-        <button id="choose-a" class="response-btn">A</button>
-        <button id="choose-b" class="response-btn">B</button>
-        <p class="muted small">Please choose based on the full sequence you just heard. Replay is not available.</p>
+        <button id="choose-a" class="response-btn" disabled>A</button>
+        <button id="choose-b" class="response-btn" disabled>B</button>
       </div>
     </section>
 
     <section id="end-screen" class="card hidden">
       <h2>Test Complete</h2>
-      <p>Thank you. Your responses have been recorded in this browser session.</p>
-      <p class="muted small">
-        Please download the CSV file and send/upload it as instructed by the researcher.
-      </p>
-
+      <p>Thank you. Please download your CSV results file.</p>
       <div class="button-row">
         <button id="download-btn">Download CSV</button>
         <button id="copy-csv-btn" class="secondary">Copy CSV</button>
@@ -308,17 +293,15 @@
 
       <div class="csv-fallback">
         <p class="muted small">
-          If the download button is blocked by your browser, use this manual download link or copy the CSV text below.
+          If the download button is blocked by your browser, use the manual link or copy the CSV text below.
         </p>
-        <a id="manual-download-link" class="download-link" download="rab_similarity_results.csv" href="#">Manual CSV download</a>
+        <a id="manual-download-link" class="download-link" href="#" download="rab_similarity_results.csv">Manual CSV download</a>
         <textarea id="csv-preview" class="csv-preview" readonly></textarea>
       </div>
     </section>
   </main>
 
-  <!-- SheetJS is used only to read the local .xlsx files in the browser. -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
   <script>
     // -------------------------------------------------------------------------
     // CONFIGURATION
@@ -330,12 +313,19 @@
 
     const AUDIO_BASE_PATH = "audio/";
     const PRE_TRIAL_DELAY_MS = 2000;
-    const BETWEEN_SOUNDS_DELAY_MS = 250;
-    const BETWEEN_REPEATS_DELAY_MS = 1000;
+    const BETWEEN_SOUNDS_DELAY_MS = 350;
+    const BETWEEN_REPEATS_DELAY_MS = 2000;
 
     // The Matrix spreadsheet already defines each participant-specific trial order.
     // Keep this false unless you intentionally want to randomize the selected row again.
     const SHUFFLE_SELECTED_ROW_TRIALS = false;
+
+    // Set to a number such as 6 when testing. Use null for the full matrix row.
+    const TRIAL_LIMIT = 6;
+
+    // The current Question_Key.xlsx uses an explicit Question_ID column.
+    // This is safer than relying on spreadsheet row order.
+    const REQUIRE_EXPLICIT_QUESTION_ID = true;
 
     // -------------------------------------------------------------------------
     // STATE
@@ -376,11 +366,9 @@
     const csvPreview = document.getElementById("csv-preview");
 
     const sequenceBoxes = [0, 1, 2, 3, 4, 5].map(i => document.getElementById(`box-${i}`));
-    const TRIAL_LIMIT = 6; // change to "null" to execute the entire 56 trials
-
 
     // -------------------------------------------------------------------------
-    // EXCEL LOADING
+    // SPREADSHEET LOADING
     // -------------------------------------------------------------------------
     async function loadExcelRows(fileName, preferredSheetName) {
       const response = await fetch(fileName, { cache: "no-store" });
@@ -420,17 +408,38 @@
       const map = new Map();
 
       questionKeyRows.forEach((row, index) => {
-        const idValue = getValueByHeader(row, ["Question_ID", "QuestionID", "ID", "Question"]);
-        const id = Number(idValue || index + 1);
+        const excelRowNumber = index + 2; // +2 because Excel row 1 is the header row.
+        const idValue = getValueByHeader(row, ["Question_ID", "Question ID", "QuestionID", "ID", "Question"]);
+
+        if (REQUIRE_EXPLICIT_QUESTION_ID && (idValue === undefined || String(idValue).trim() === "")) {
+          throw new Error(
+            `Invalid row in ${QUESTION_KEY_XLSX_FILE} at Excel row ${excelRowNumber}. ` +
+            "Expected an explicit Question_ID column."
+          );
+        }
+
+        // If REQUIRE_EXPLICIT_QUESTION_ID is false, the fallback remains the 1-based data-row index.
+        const id = Number(idValue === undefined || String(idValue).trim() === "" ? index + 1 : idValue);
         const note = String(getValueByHeader(row, ["Note"]) || "").trim();
         const caseA = Number(getValueByHeader(row, ["Case_A", "CaseA", "A"]));
         const caseB = Number(getValueByHeader(row, ["Case_B", "CaseB", "B"]));
 
-        if (!note || !Number.isFinite(caseA) || !Number.isFinite(caseB)) {
-          throw new Error(`Invalid row in ${QUESTION_KEY_XLSX_FILE} at row ${index + 2}. Expected columns: Note, Case_A, Case_B.`);
+        if (!Number.isInteger(id) || id < 1) {
+          throw new Error(`Invalid Question_ID in ${QUESTION_KEY_XLSX_FILE} at Excel row ${excelRowNumber}.`);
         }
 
-        map.set(id, { id, note, caseA, caseB });
+        if (!note || !Number.isFinite(caseA) || !Number.isFinite(caseB)) {
+          throw new Error(
+            `Invalid row in ${QUESTION_KEY_XLSX_FILE} at Excel row ${excelRowNumber}. ` +
+            "Expected columns: Question_ID, Note, Case_A, Case_B."
+          );
+        }
+
+        if (map.has(id)) {
+          throw new Error(`Duplicate Question_ID ${id} found in ${QUESTION_KEY_XLSX_FILE}.`);
+        }
+
+        map.set(id, { id, note, caseA, caseB, questionKeyExcelRow: excelRowNumber });
       });
 
       return map;
@@ -496,7 +505,7 @@
         };
 
         spreadsheetStatus.innerHTML =
-          `Loaded spreadsheets successfully: ${spreadsheetInfo.questionKeyRows} question-key rows, ` +
+          `Loaded spreadsheets successfully: ${spreadsheetInfo.questionKeyRows} question-key rows using explicit Question_ID labels, ` +
           `${spreadsheetInfo.matrixRows} matrix rows, ${spreadsheetInfo.questionCount} trials per participant.`;
         startBtn.disabled = false;
       } catch (err) {
@@ -546,32 +555,30 @@
       return matrixBySubject.has(numericSubject) ? Number(numericSubject) : null;
     }
 
-    function setScreen(screenName) {
-      startScreen.classList.toggle("hidden", screenName !== "start");
-      trialScreen.classList.toggle("hidden", screenName !== "trial");
-      endScreen.classList.toggle("hidden", screenName !== "end");
-    }
-
-    function resetSequenceBoxes() {
-      sequenceBoxes.forEach(box => {
-        box.classList.remove("active");
-        box.classList.remove("done");
-      });
-    }
-
-    function updateProgress() {
-      const total = trials.length || spreadsheetInfo.questionCount || 56;
-      const current = Math.min(currentTrialIndex + 1, total);
-      progressText.textContent = `Trial ${current} of ${total}`;
-      const pct = total === 0 ? 0 : (currentTrialIndex / total) * 100;
-      progressFill.style.width = `${pct}%`;
-    }
-
     function buildFilename(note, type, caseNumber) {
       if (type === "REF") {
         return `${note}_REF.wav`;
       }
       return `${note}_SYNTH_Sound${caseNumber}.wav`;
+    }
+
+    function resetSequenceBoxes() {
+      sequenceBoxes.forEach(box => {
+        box.classList.remove("active", "done");
+      });
+    }
+
+    function setScreen(screen) {
+      startScreen.classList.toggle("hidden", screen !== "start");
+      trialScreen.classList.toggle("hidden", screen !== "trial");
+      endScreen.classList.toggle("hidden", screen !== "end");
+    }
+
+    function updateProgress() {
+      const total = trials.length || 1;
+      const shownTrial = Math.min(currentTrialIndex + 1, total);
+      progressText.textContent = `Trial ${shownTrial} of ${total}`;
+      progressFill.style.width = `${(currentTrialIndex / total) * 100}%`;
     }
 
     function buildTrialsForSubject(subject) {
@@ -586,7 +593,7 @@
       }
 
       if (TRIAL_LIMIT !== null) {
-          questionIds = questionIds.slice(0, TRIAL_LIMIT);
+        questionIds = questionIds.slice(0, TRIAL_LIMIT);
       }
 
       return questionIds.map((questionId, index) => {
@@ -602,6 +609,7 @@
         return {
           trialNumber: index + 1,
           questionId,
+          questionKeyExcelRow: keyRow.questionKeyExcelRow,
           note,
           caseA,
           caseB,
@@ -662,55 +670,53 @@
 
         audio.play().catch(err => {
           cleanup();
-          reject(err);
+          reject(new Error(`Playback failed for ${filename}: ${err.message || err}`));
         });
       });
     }
 
-    async function playTrialSequence() {
-      const trial = getCurrentTrial();
-
-      resetSequenceBoxes();
-      questionPanel.classList.add("hidden");
-      setButtonsEnabled(false);
-
-      statusPanel.textContent = "Get ready. The sequence will start shortly...";
-      await sleep(PRE_TRIAL_DELAY_MS);
-
+    async function playTrialSequence(trial) {
       const sequence = [
-        { label: "R", file: trial.referenceFile, boxIndex: 0 },
-        { label: "A", file: trial.fileA, boxIndex: 1 },
-        { label: "B", file: trial.fileB, boxIndex: 2 },
-        { label: "R", file: trial.referenceFile, boxIndex: 3 },
-        { label: "A", file: trial.fileA, boxIndex: 4 },
-        { label: "B", file: trial.fileB, boxIndex: 5 }
+        { file: trial.referenceFile, boxIndex: 0 },
+        { file: trial.fileA, boxIndex: 1 },
+        { file: trial.fileB, boxIndex: 2 },
+        { file: trial.referenceFile, boxIndex: 3 },
+        { file: trial.fileA, boxIndex: 4 },
+        { file: trial.fileB, boxIndex: 5 }
       ];
 
-      try {
-        for (let i = 0; i < sequence.length; i++) {
-          if (i === 3) {
-            statusPanel.textContent = "Short pause before the sequence repeats...";
-            await sleep(BETWEEN_REPEATS_DELAY_MS);
-          } else if (i > 0) {
-            await sleep(BETWEEN_SOUNDS_DELAY_MS);
-          }
+      await sleep(PRE_TRIAL_DELAY_MS);
 
-          await playAudioFile(sequence[i].file, sequence[i].boxIndex);
+      for (let i = 0; i < sequence.length; i++) {
+        await playAudioFile(sequence[i].file, sequence[i].boxIndex);
+
+        if (i === 2) {
+          statusPanel.textContent = "Short pause before the sequence repeats...";
+          await sleep(BETWEEN_REPEATS_DELAY_MS);
+        } else if (i < sequence.length - 1) {
+          await sleep(BETWEEN_SOUNDS_DELAY_MS);
         }
-
-        statusPanel.textContent = "Sequence complete. Please answer the question below.";
-        trialStartTime = Date.now();
-        questionPanel.classList.remove("hidden");
-        setButtonsEnabled(true);
-      } catch (err) {
-        statusPanel.innerHTML = `<span class="error">${err.message || err}</span>`;
-        setButtonsEnabled(false);
       }
     }
 
-    function startTrial() {
+    async function startTrial() {
+      const trial = getCurrentTrial();
+      resetSequenceBoxes();
+      questionPanel.classList.add("hidden");
+      setButtonsEnabled(false);
       updateProgress();
-      playTrialSequence();
+
+      statusPanel.textContent = "Get ready. The sequence will start shortly...";
+
+      try {
+        await playTrialSequence(trial);
+        statusPanel.textContent = "Please respond.";
+        questionPanel.classList.remove("hidden");
+        setButtonsEnabled(true);
+        trialStartTime = Date.now();
+      } catch (err) {
+        statusPanel.innerHTML = `<span class="error">${err.message || err}</span>`;
+      }
     }
 
     function recordResponse(choice) {
@@ -726,6 +732,7 @@
         selected_subject: selectedSubject,
         trial_number: trial.trialNumber,
         question_id: trial.questionId,
+        question_key_excel_row: trial.questionKeyExcelRow,
         note: trial.note,
         reference_file: trial.referenceFile,
         case_a: trial.caseA,
@@ -756,6 +763,7 @@
         "selected_subject",
         "trial_number",
         "question_id",
+        "question_key_excel_row",
         "note",
         "reference_file",
         "case_a",
@@ -875,17 +883,21 @@
 
       try {
         await navigator.clipboard.writeText(preparedCsv);
-        copyCsvBtn.textContent = "Copied!";
-        setTimeout(() => { copyCsvBtn.textContent = "Copy CSV"; }, 1600);
+        copyCsvBtn.textContent = "Copied";
+        setTimeout(() => { copyCsvBtn.textContent = "Copy CSV"; }, 1500);
       } catch (err) {
         csvPreview.focus();
         csvPreview.select();
-        copyCsvBtn.textContent = "Select and copy below";
-        setTimeout(() => { copyCsvBtn.textContent = "Copy CSV"; }, 2200);
       }
     });
 
     restartBtn.addEventListener("click", restartTest);
+
+    window.addEventListener("beforeunload", () => {
+      if (currentAudio) {
+        currentAudio.pause();
+      }
+    });
 
     loadSpreadsheets();
   </script>
