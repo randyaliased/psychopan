@@ -242,18 +242,18 @@
 
       <label for="participant-id-input">Participant ID</label>
       <input id="participant-id-input" type="text" inputmode="numeric" placeholder="e.g., 1, 001, or P001" autocomplete="off" />
-      <p class="muted small">
+      <!-- <p class="muted small">
         The participant ID selects the corresponding row from <code>The_Matrix.xlsx</code>. For example,
         <code>1</code>, <code>001</code>, and <code>P001</code> all select Subject 1.
-      </p>
+      </p> -->
 
-      <p id="spreadsheet-status" class="status-panel">Loading spreadsheets...</p>
+      <p id="spreadsheet-status" class="status-panel hidden">Loading spreadsheets...</p>
 
-      <p class="muted small">
+      <!-- <p class="muted small">
         Required files should be hosted in the same folder as this HTML file:
         <code>The_Matrix.xlsx</code>, <code>Question_Key.xlsx</code>, and an <code>audio/</code> folder containing the WAV files.
         The app loads filenames such as <code>C4_REF.wav</code>, <code>C4_SYNTH_Sound1.wav</code>, and <code>C#4_SYNTH_Sound8.wav</code>.
-      </p>
+      </p> -->
 
       <button id="start-btn" disabled>Start Test</button>
       <p id="start-error" class="error hidden"></p>
