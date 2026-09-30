@@ -376,6 +376,8 @@
     const csvPreview = document.getElementById("csv-preview");
 
     const sequenceBoxes = [0, 1, 2, 3, 4, 5].map(i => document.getElementById(`box-${i}`));
+    const TRIAL_LIMIT = 6; // change to "null" to execute the entire 56 trials
+
 
     // -------------------------------------------------------------------------
     // EXCEL LOADING
@@ -581,6 +583,10 @@
       let questionIds = matrixRow.questions.map(Number);
       if (SHUFFLE_SELECTED_ROW_TRIALS) {
         questionIds = shuffle(questionIds);
+      }
+
+      if (TRIAL_LIMIT !== null) {
+          questionIds = questionIds.slice(0, TRIAL_LIMIT);
       }
 
       return questionIds.map((questionId, index) => {
